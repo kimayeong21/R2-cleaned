@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# IDE settings
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local env
+.env
+.venv/
+venv/
+
+# Logs
+*.log
+
+# Large local artifacts
+*.pptx
+*.mp4
+*.docx
+*.geojson
