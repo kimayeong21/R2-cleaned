@@ -184,12 +184,6 @@ R2-cleaned/
 
 > 대용량 발표자료, 영상, 지도 원본 데이터는 저장소 업로드 안정성을 위해 Git 추적에서 제외했습니다.
 
-## 기술 블로그
-
-학습 과정과 실습 내용은 아래 블로그에 정리되어 있습니다.
-
-[Tistory - 로보테크 AI](https://steezer.tistory.com/category/%EB%A1%9C%EB%B3%B4%ED%85%8C%ED%81%ACAI)
-
 ## 개발자
 
 김아영
