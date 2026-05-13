@@ -163,32 +163,49 @@ Arduino Uno, ESP8266, HC-SR04, DHT11, LDR, Sound Sensor, Python, PyQt5, UDP, HTT
 
 ### 프로젝트 개요
 
-미세먼지 센서 데이터를 기반으로 오염 구역을 자동으로 감지하고, TurtleBot3가 해당 구역으로 이동해 공기청정 동작을 수행하는 로봇 시스템입니다. 센서, 로봇 제어, MQTT 통신, 웹 대시보드가 하나의 흐름으로 연결되도록 구성했습니다.
+미세먼지 센서 데이터와 TurtleBot3 자율주행을 연결해 오염 구역을 찾아가고, 공기청정 동작과 상태 모니터링까지 이어지도록 만든 통합 로봇 시스템입니다. ROS2는 로봇 이동과 센서 흐름을 담당하고, Spring Boot 웹 서버는 로봇 상태와 미세먼지 정보를 대시보드로 보여주는 역할을 맡습니다.
 
-ROS2 패키지는 PMS7003 센서 데이터를 받아 `/air_quality` 토픽으로 전달하고, PM2.5 값이 기준치를 넘으면 로봇이 오염 구역으로 이동하도록 설계했습니다. 실제 센서가 없을 때도 시뮬레이션 모드로 FSM 흐름을 확인할 수 있게 구성했습니다.
+원본 TBPJ 프로젝트의 핵심은 `센서 수집 -> MQTT 전달 -> ROS2 판단 -> 자율주행 -> 웹 대시보드 확인` 흐름입니다. ESP01과 PMS7003 센서가 미세먼지 값을 전달하면, ROS2 노드가 오염도를 분석하고 TurtleBot3가 오염 구역으로 이동합니다. 웹에서는 로봇 위치, 배터리, 이동 경로, 구역별 PM1.0 / PM2.5 / PM10 정보를 확인할 수 있도록 구성했습니다.
 
-Spring Boot 서버는 로봇 위치, 배터리, 경로, 구역별 미세먼지 정보를 받아 웹 대시보드에 표시합니다. Thymeleaf 화면에서 SLAM 맵, 3D ROS 뷰, 카메라 피드, 구역별 PM1.0 / PM2.5 / PM10 정보를 확인할 수 있도록 구성했습니다.
+### 시스템 흐름
 
-### 주요 구현 내용
+센서 영역에서는 PMS7003 미세먼지 센서와 ESP01 모듈이 데이터를 수집하고 MQTT 브로커로 전송합니다. ROS2 영역에서는 MQTT 데이터를 `/dust/pm`, `/dust/cells`, `/air_clean_command` 같은 토픽 흐름으로 바꾸어 로봇 제어에 사용합니다. 로봇 영역에서는 TurtleBot3 Waffle Pi가 SLAM 맵, LiDAR, AMCL 위치 추정 정보를 바탕으로 경로를 계산하고 주행합니다. 웹 영역에서는 Spring Boot 서버가 MQTT와 데이터베이스를 통해 로봇 상태를 받아 대시보드에 표시합니다.
 
-- PMS7003 미세먼지 센서 데이터 수신
-- ESP8266 및 MQTT 기반 데이터 통신 흐름 구성
-- ROS2 Humble 기반 TurtleBot3 제어
-- FSM 상태 흐름 구성: IDLE, GO_TO_ZONE, CLEANING, RETURN
-- A* 경로 탐색 및 Pure Pursuit 기반 주행 흐름 구성
-- 로봇 위치, 배터리, 경로, 미세먼지 데이터 웹 대시보드 표시
-- Spring Boot, MySQL, Thymeleaf 기반 관제 서버 구성
-- 센서 없는 FSM 테스트와 실제 센서 테스트 흐름 분리
+전체 구조는 공기질 센서, MQTT 브로커, ROS2 패키지, TurtleBot3, Spring Boot 대시보드가 서로 분리되어 있으면서도 하나의 서비스처럼 동작하도록 연결했습니다. 덕분에 센서 데이터 수집, 로봇 제어, 사용자 화면을 각각 수정하거나 확장하기 쉬운 형태입니다.
 
-### ROS2 동작 흐름
+### ROS2 패키지 구성
 
-센서 데이터는 `PMS7003 -> Arduino -> USB Serial -> ROS2 -> Nav2` 흐름으로 전달됩니다. `serial_air_quality_node`가 센서 값을 읽고 `/air_quality` 토픽으로 JSON 문자열을 발행하면, `air_quality_task_manager`가 PM2.5 값을 기준으로 오염 구역 이동 여부를 판단합니다.
+`air_clean_robot` 패키지는 로봇 주행과 명령 처리를 담당합니다. A* 기반 경로 탐색과 Pure Pursuit 제어를 통해 목표 지점까지 이동하고, `/map`, `/scan`, `/amcl_pose`, `/goal_pose` 같은 정보를 사용해 `/cmd_vel` 명령을 생성합니다. 또한 웹에서 전달된 이동 명령을 ROS2 명령으로 변환하고, 로봇 위치와 배터리 정보를 MQTT로 다시 전달합니다.
 
-MQTT 입력은 추후 확장 구조로 분리할 수 있도록 설계되어 있으며, MQTT 노드가 추가되더라도 `/air_quality` 토픽의 JSON 형식은 동일하게 유지하도록 구성했습니다.
+`dust_mapping` 패키지는 미세먼지 데이터를 지도 위에 연결하는 역할을 합니다. MQTT로 들어온 PM 데이터를 ROS2 토픽으로 변환하고, 로봇 위치 정보와 결합해 구역별 오염도를 계산합니다. 이 결과는 웹 대시보드와 로봇 제어 흐름에서 함께 사용할 수 있도록 구성했습니다.
+
+### Spring Boot 대시보드 구성
+
+웹 서버는 로봇의 현재 위치, 배터리 상태, 이동 경로, 구역별 미세먼지 데이터를 받아 화면에 표시합니다. 사용자는 대시보드에서 특정 지점 이동, 홈 복귀, 정지, 순찰, 청정 동작 같은 명령을 보낼 수 있습니다. 또한 2D 맵과 3D ROS 뷰를 통해 로봇이 어느 위치에 있고 어떤 경로로 이동하는지 확인할 수 있도록 구성했습니다.
+
+데이터 저장과 조회에는 MySQL을 사용하며, 화면 구성은 Spring Boot와 Thymeleaf 기반으로 작성되어 있습니다. REST API는 로봇 상태 조회, 위치 조회, 미세먼지 최신값 조회, 이동 경로 조회, 로봇 명령 전달 기능을 중심으로 구성했습니다.
+
+### 빌드 및 실행 흐름
+
+ROS2 패키지는 작업 공간에서 `colcon build`로 빌드한 뒤 `source install/setup.bash`를 적용해 실행합니다. 로봇에서는 TurtleBot3 bringup을 먼저 실행하고, PC에서는 공기청정 로봇 관련 launch 파일을 실행해 AMCL, 경로 탐색, MQTT 브리지, GUI 흐름을 연결합니다.
+
+웹 서버는 `spring-boot` 폴더에서 Gradle로 실행하며, MySQL 데이터베이스와 사용자 계정을 준비한 뒤 대시보드에 접속하는 방식입니다. MQTT 브로커는 로봇, 센서, 웹 서버가 같은 네트워크에서 데이터를 주고받을 수 있도록 먼저 실행되어야 합니다.
+
+### 동작 시나리오
+
+자동 청정 모드에서는 센서가 PM2.5 값을 전송하고, 오염도가 기준치를 넘으면 로봇이 해당 구역으로 이동합니다. 이동 중에는 A* 경로와 Pure Pursuit 제어를 활용하고, 청정 동작 이후 수치가 안정되면 복귀 흐름으로 전환합니다.
+
+수동 제어 모드에서는 웹 대시보드의 버튼을 통해 특정 구역, 홈 위치, 정지, 충전, 청정 동작 명령을 보낼 수 있습니다. 순찰 모드에서는 지정된 구역을 차례로 이동하면서 미세먼지 데이터를 수집하고, 마지막에는 홈 위치로 돌아오도록 구성했습니다.
+
+### 제약 사항 및 확장 방향
+
+현재 구성은 TurtleBot3 Waffle Pi, ROS2 Humble, Ubuntu 22.04 환경을 기준으로 작성되어 있습니다. MQTT 브로커와 로봇, 웹 서버는 같은 네트워크에서 안정적으로 연결되어야 하며, 실제 PMS7003 센서는 초기 안정화 시간이 필요합니다. 3D 시각화 기능은 ROSBridge와 브라우저 환경에 따라 별도 설정이 필요할 수 있습니다.
+
+확장 방향으로는 다중 로봇 제어, 공기질 변화 예측, 자동 충전 도킹, 장기 공기질 기록 대시보드, 모바일 화면 연동을 고려할 수 있습니다. 현재 구조가 ROS2 패키지와 웹 서버로 분리되어 있어 기능을 단계적으로 확장하기 좋은 형태입니다.
 
 ### 사용 기술
 
-ROS2 Humble, TurtleBot3 Waffle Pi, Python, Nav2, Cartographer SLAM, MQTT, Spring Boot, Java 21, MySQL, Thymeleaf, Cloudflare Tunnel
+ROS2 Humble, TurtleBot3 Waffle Pi, Python, Nav2, Cartographer SLAM, AMCL, MQTT, Mosquitto, Spring Boot, Java 21, MySQL, Thymeleaf, ROSBridge, Three.js, Cloudflare Tunnel
 
 ### 관련 폴더
 
