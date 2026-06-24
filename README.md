@@ -192,6 +192,8 @@ ROS2 Humble, TurtleBot3 Waffle Pi, Python, Nav2, Cartographer SLAM, AMCL, MQTT, 
 
 ### 프로젝트 개요
 
+> **현재 구현 중인 프로젝트입니다.** 로봇팔 자동 피킹과 군집 추종 기능을 통합·검증하고 있습니다.
+
 PACK(Pick · Arm · Carry Kit)은 이동형 리더 로봇이 물체를 인식해 로봇팔로 집고, F1과 F2 추종 차량이 일정 간격을 유지하며 뒤따라 운반하는 다중 로봇 협업 시스템입니다. 고정형 설비가 아닌 이동 로봇이 피킹과 운반을 역할별로 나누어 수행하도록 구성하고 있으며, 현재 전체 통합 시나리오를 구현·검증 중입니다.
 
 리더 역할의 TurtleBot3 Waffle Pi에는 6자유도 로봇팔과 카메라를 연동했습니다. 카메라 기반 색상 검출과 ArUco 마커 인식을 사용해 물체를 조준하고, MQTT와 USB Serial 게이트웨이를 거쳐 Arduino의 서보 제어 명령으로 전달합니다.
