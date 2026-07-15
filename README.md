@@ -238,14 +238,6 @@ PACK(Precise Picking · Autonomous Arm · Collaborative Convoy · Kit)은 리더
 
 ROS2 Humble, Python, OpenCV, ArUco, solvePnP, TurtleBot3 Waffle Pi, Nav2, A*, Pure Pursuit, Arduino Uno, Arduino 4WD, PCA9685, Raspberry Pi, MQTT, Mosquitto, USB Serial, Flask, rosbridge, JavaScript, SLAM, YAML
 
-### 시연 영상
-
-[![PACK 시연 영상 미리보기](PACK/PACK_preview.gif)](https://media.githubusercontent.com/media/kimayeong21/R2-cleaned/main/PACK/PACK.mp4)
-
-[원본 PACK 시연 영상 보기](https://media.githubusercontent.com/media/kimayeong21/R2-cleaned/main/PACK/PACK.mp4)
-
-GitHub README에서는 영상 컨트롤 태그가 표시되지 않을 수 있어, 바로 보이는 미리보기 GIF를 사용했습니다. 미리보기 이미지를 클릭하면 원본 영상으로 이동합니다.
-
 ### 관련 폴더
 
 `PACK/`

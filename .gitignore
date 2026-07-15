@@ -22,6 +22,5 @@ venv/
 *.pptx
 *.mp4
 !TBPJ/*.mp4
-!PACK/*.mp4
 *.docx
 *.geojson
