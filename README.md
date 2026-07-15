@@ -188,30 +188,45 @@ ROS2 Humble, TurtleBot3 Waffle Pi, Python, Nav2, Cartographer SLAM, AMCL, MQTT, 
 
 ---
 
-## 프로젝트 07. 군집 협업 자율 피킹·운반 로봇 (구현 중)
+## 프로젝트 07. 군집 협업 자율 피킹·운반 로봇
 
 ### 프로젝트 개요
 
-> **현재 구현 중인 프로젝트입니다.** 로봇팔 자동 피킹과 군집 추종 기능을 통합·검증하고 있습니다.
+PACK(Precise Picking · Autonomous Arm · Collaborative Convoy · Kit)은 리더 로봇 1대와 팔로워 로봇 2대가 역할을 나누어 피킹과 운반을 수행하는 최종 프로젝트입니다. TurtleBot3 Waffle Pi 기반 리더는 자율주행으로 적재 위치까지 이동하고, eye-in-hand 카메라와 6축 로봇팔을 이용해 물체를 집어 팔로워에게 적재합니다. F1과 F2 팔로워는 앞차의 ArUco 마커를 추종하다가, 적재가 끝난 뒤에는 각자 지정된 위치까지 독립적으로 이동하도록 구성했습니다.
 
-PACK(Pick · Arm · Carry Kit)은 이동형 리더 로봇이 물체를 인식해 로봇팔로 집고, F1과 F2 추종 차량이 일정 간격을 유지하며 뒤따라 운반하는 다중 로봇 협업 시스템입니다. 고정형 설비가 아닌 이동 로봇이 피킹과 운반을 역할별로 나누어 수행하도록 구성하고 있으며, 현재 전체 통합 시나리오를 구현·검증 중입니다.
+이 프로젝트는 고가의 로봇팔을 여러 대 배치하기 어려운 환경을 가정하고, 로봇팔이 달린 리더는 피킹을 담당하며 저가형 팔로워는 운반을 맡는 구조로 설계했습니다. 고정 컨베이어 중심의 자동화가 아니라, 이동 로봇이 직접 찾아가고 집고 나르는 흐름을 목표로 했습니다.
 
-리더 역할의 TurtleBot3 Waffle Pi에는 6자유도 로봇팔과 카메라를 연동했습니다. 카메라 기반 색상 검출과 ArUco 마커 인식을 사용해 물체를 조준하고, MQTT와 USB Serial 게이트웨이를 거쳐 Arduino의 서보 제어 명령으로 전달합니다.
+전체 미션은 `FORMATION_WAIT -> GO_TO_LOAD_1 -> F1 적재 -> F1 단독 이동 -> F2 A* 접근 -> 2차 적재 -> 리더 복귀 -> MISSION_COMPLETE` 흐름으로 동작합니다. 리더의 자율주행, 로봇팔 피킹, 팔로워 추종, A* 경로 계획, 웹 대시보드 관제를 하나의 통합 시나리오로 연결했습니다.
 
 ### 주요 구현 내용
 
-- Arduino Uno와 PCA9685 기반 6자유도 로봇팔 제어
-- MQTT 명령을 USB Serial로 전달하는 Raspberry Pi 게이트웨이
-- 색상 검출과 eye-in-hand 카메라 기반 자동 피킹 흐름
-- ArUco 마커와 OpenCV solvePnP 기반 위치 추정
-- 쿼드러처 엔코더 기반 오도메트리와 마커 측위 융합
-- F1 리더 추종, F2 차량 추종을 위한 ROS2 FSM 구성 및 검증
-- SLAM 맵 위에 마커, 로봇 위치, 주행 궤적을 표시하는 OpenCV GUI
-- 웨이포인트 주행과 목표점 지정 기능
+- TurtleBot3 Waffle Pi 기반 리더 자율주행과 미션 상태머신 구성
+- eye-in-hand 카메라 색상 검출과 IK 기반 6축 로봇팔 자동 피킹
+- Arduino Uno, PCA9685, Raspberry Pi, MQTT, USB Serial을 연결한 로봇팔 제어
+- 벽면 ArUco 마커와 OpenCV solvePnP를 활용한 공용 좌표계 위치 추정
+- 쿼드러처 엔코더 오도메트리와 마커 측위를 결합한 팔로워 위치 보정
+- F1은 리더 후면 마커를 추종하고, F2는 F1 후면 마커를 추종하는 군집 대형 구성
+- F2의 접근·복귀 구간에 A* 경로 계획과 Pure Pursuit 기반 주행 적용
+- mode manager와 command mux를 사용해 로봇별 명령이 충돌하지 않도록 제어
+- Flask와 rosbridge 기반 웹 대시보드에서 3대 로봇 상태와 미션 제어 화면 제공
+- 마커 맵, 로봇 위치, 주행 궤적을 확인할 수 있는 PC 모니터링 도구 구성
+
+### 시스템 구성
+
+| 구성 | 역할 | 주요 내용 |
+| --- | --- | --- |
+| 리더 TB3 | 자율주행, 피킹, 미션 지휘 | TurtleBot3 Waffle Pi, 6축 로봇팔, Pi Camera, ROS2 Nav2 |
+| F1 팔로워 | 리더 추종 후 단독 이동 | Arduino 4WD, 쿼드러처 엔코더, Raspberry Pi, ArUco 추종 |
+| F2 팔로워 | F1 추종 후 A* 경로 이동 | Arduino 4WD, A* Planner, command mux, 재타겟 추종 |
+| 웹 대시보드 | 상태 관제와 미션 제어 | Flask, rosbridge, JavaScript, map view |
 
 ### 사용 기술
 
-ROS2 Humble, Python, OpenCV, ArUco, solvePnP, TurtleBot3 Waffle Pi, Arduino Uno, Arduino 4WD, PCA9685, Raspberry Pi, MQTT, Mosquitto, USB Serial, 쿼드러처 엔코더, SLAM, YAML
+ROS2 Humble, Python, OpenCV, ArUco, solvePnP, TurtleBot3 Waffle Pi, Nav2, A*, Pure Pursuit, Arduino Uno, Arduino 4WD, PCA9685, Raspberry Pi, MQTT, Mosquitto, USB Serial, Flask, rosbridge, JavaScript, SLAM, YAML
+
+### 시연 영상
+
+완성 시연 영상 `PACK.mp4`는 파일 크기가 약 825MB로 GitHub 일반 저장소 단일 파일 제한을 초과해 Git 추적에는 포함하지 않았습니다. 영상은 발표·시연용 자료로 별도 보관합니다.
 
 ### 관련 폴더
 
@@ -240,13 +255,18 @@ R2-cleaned/
 │   │   └── dust_mapping/
 │   └── spring-boot/
 └── PACK/
+    ├── final_ws/
+    │   └── src/final_mission_robot/
+    ├── from_tb3/
+    ├── from_f1/
+    │   └── encoder_bridge/
+    ├── from_f2/
+    │   └── encoder_bridge/
+    ├── robot_dashboard_flask/
+    ├── images/
     ├── RobotArmCase.ino
     ├── auto_pick.py
     ├── f1_car.ino
-    ├── images/
-    └── encoder_bridge_f1/
-        ├── config/
-        ├── encoder_bridge/
-        ├── launch/
-        └── maps/
+    ├── map_pose_viewer_pc.py
+    └── mqtt_gateway_lite.py
 ```
