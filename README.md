@@ -240,9 +240,11 @@ ROS2 Humble, Python, OpenCV, ArUco, solvePnP, TurtleBot3 Waffle Pi, Nav2, A*, Pu
 
 ### 시연 영상
 
-[PACK 시연 영상 보기](https://media.githubusercontent.com/media/kimayeong21/R2-cleaned/main/PACK/PACK.mp4)
+![PACK 시연 영상 미리보기](PACK/PACK_preview.gif)
 
-영상 파일은 용량이 커서 Git LFS로 관리합니다. GitHub 파일 화면에서는 미리보기가 제한될 수 있어, 위 링크는 원본 영상 파일로 바로 연결되도록 설정했습니다.
+[원본 PACK 시연 영상 보기](https://media.githubusercontent.com/media/kimayeong21/R2-cleaned/main/PACK/PACK.mp4)
+
+원본 영상은 용량이 커서 Git LFS로 관리하고, README에서는 바로 확인할 수 있도록 미리보기 GIF를 함께 제공합니다.
 
 ### 관련 폴더
 
